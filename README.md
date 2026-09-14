@@ -74,11 +74,11 @@ escribe el CSV limpio y acumula el resumen
 
 ## Estructura del proyecto
 
-| Módulo | Archivos | Quién lo desarrolla |
-|---|---|---|
-| Esquema + lector concurrente (productor) | `internal/preprocessing/schema.go`, `internal/preprocessing/reader.go` (+ tests) | Loana (base) |
-| Validación y transformación (worker) | `internal/preprocessing/worker.go` (+ test) | Por definir (Rodrigo o Eduardo) |
-| Orquestación, resumen y CLI | `internal/preprocessing/pipeline.go`, `internal/preprocessing/summary.go`, `internal/preprocessing/testdata.go`, `cmd/testdatagen/main.go`, `main.go` (+ tests) | Por definir (Rodrigo o Eduardo) |
+| Módulo | Archivos |
+|---|---|
+| Esquema + lector concurrente (productor) | `internal/preprocessing/schema.go`, `internal/preprocessing/reader.go` (+ tests) |
+| Validación y transformación (worker) | `internal/preprocessing/worker.go` (+ test) |
+| Orquestación, resumen y CLI | `internal/preprocessing/pipeline.go`, `internal/preprocessing/summary.go`, `internal/preprocessing/testdata.go`, `cmd/testdatagen/main.go`, `main.go` (+ tests) |
 
 ## Pruebas
 
