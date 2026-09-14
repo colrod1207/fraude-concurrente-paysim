@@ -7,12 +7,11 @@ data/raw/*.csv
 data/processed/*.csv
 !data/processed/sample_clean.csv
 
-# Python
-__pycache__/
-*.pyc
-.venv/
-venv/
-*.egg-info/
+# Go
+/fraude-concurrente-paysim
+/fraude-concurrente-paysim.exe
+/testdatagen
+/testdatagen.exe
 
 # Credenciales de Kaggle (nunca deben subirse al repo)
 kaggle.json
@@ -21,7 +20,3 @@ kaggle.json
 .DS_Store
 .idea/
 .vscode/
-
-# Go (base para PC2)
-go/go
-go/go.exe
