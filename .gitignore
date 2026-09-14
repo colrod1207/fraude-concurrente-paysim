@@ -1,0 +1,23 @@
+# El CSV crudo de PaySim pesa ~470 MB: supera el límite de 100 MB por
+# archivo de GitHub. Se descarga aparte desde Kaggle (ver README).
+data/raw/*.csv
+
+# El CSV limpio también es grande (~mismo orden de magnitud que el crudo).
+# Se sube como evidencia solo el resumen JSON y, si acaso, una muestra chica.
+data/processed/*.csv
+!data/processed/sample_clean.csv
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# Credenciales de Kaggle (nunca deben subirse al repo)
+kaggle.json
+
+# Archivos de IDE / SO
+.DS_Store
+.idea/
+.vscode/
