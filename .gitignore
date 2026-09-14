@@ -21,3 +21,7 @@ kaggle.json
 .DS_Store
 .idea/
 .vscode/
+
+# Go (base para PC2)
+go/go
+go/go.exe
