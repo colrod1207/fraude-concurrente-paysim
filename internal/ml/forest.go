@@ -15,17 +15,30 @@ type RandomForest struct {
 // TrainForest entrena numTrees arboles, terminando uno antes de iniciar otro.
 // La misma semilla, muestras en el mismo orden y parametros reproducen el bosque.
 func TrainForest(samples []Sample, numTrees, maxDepth int, seed int64) (*RandomForest, error) {
-	if numTrees < 1 {
-		return nil, fmt.Errorf("el numero de arboles debe ser positivo")
-	}
-	numFeatures, err := validateTraining(samples, maxDepth)
+	forest, mtry, seeds, err := prepareForest(samples, numTrees, maxDepth, seed)
 	if err != nil {
 		return nil, err
 	}
+	for i, treeSeed := range seeds {
+		forest.trees[i] = trainForestTree(samples, maxDepth, mtry, treeSeed)
+	}
+	return forest, nil
+}
+
+// prepareForest valida la entrada y reserva el bosque vacio junto con mtry y
+// la semilla de cada arbol. Lo comparten la version secuencial y la concurrente.
+func prepareForest(samples []Sample, numTrees, maxDepth int, seed int64) (*RandomForest, int, []int64, error) {
+	if numTrees < 1 {
+		return nil, 0, nil, fmt.Errorf("el numero de arboles debe ser positivo")
+	}
+	numFeatures, err := validateTraining(samples, maxDepth)
+	if err != nil {
+		return nil, 0, nil, err
+	}
 	mtry := max(1, int(math.Sqrt(float64(numFeatures))))
 
-	// Se asigna cada semilla a su indice antes de entrenar. Un futuro ejecutor
-	// concurrente podra conservar esta asignacion sin depender del orden de ejecucion.
+	// Se asigna cada semilla a su indice antes de entrenar. Asi el ejecutor
+	// concurrente conserva esta asignacion sin depender del orden de ejecucion.
 	master := rand.New(rand.NewSource(seed))
 	seeds := make([]int64, numTrees)
 	for i := range seeds {
@@ -35,10 +48,7 @@ func TrainForest(samples []Sample, numTrees, maxDepth int, seed int64) (*RandomF
 		trees:       make([]*DecisionTree, numTrees),
 		numFeatures: numFeatures,
 	}
-	for i, treeSeed := range seeds {
-		forest.trees[i] = trainForestTree(samples, maxDepth, mtry, treeSeed)
-	}
-	return forest, nil
+	return forest, mtry, seeds, nil
 }
 
 // trainForestTree recibe datos ya validados y usa un RNG exclusivo del arbol.

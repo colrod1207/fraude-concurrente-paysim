@@ -1,4 +1,4 @@
-// Ejecuta el Random Forest secuencial sobre el CSV limpio de PaySim.
+// Ejecuta el Random Forest (secuencial o concurrente) sobre el CSV limpio de PaySim.
 package main
 
 import (
@@ -23,12 +23,13 @@ func run() error {
 	depth := flag.Int("depth", 5, "profundidad maxima (raiz = 0)")
 	seed := flag.Int64("seed", 42, "semilla para split y entrenamiento, con generadores separados")
 	limit := flag.Int("limit", 10000, "primeros N registros a cargar; 0 lee todos (puede ser costoso)")
+	workers := flag.Int("workers", 0, "goroutines para entrenar; 0 usa la version secuencial")
 	flag.Parse()
 	if flag.NArg() != 0 {
-		return fmt.Errorf("use los parametros --input, --trees, --depth, --seed y --limit")
+		return fmt.Errorf("use los parametros --input, --trees, --depth, --seed, --limit y --workers")
 	}
-	if *trees < 1 || *depth < 0 || *limit < 0 {
-		return fmt.Errorf("trees debe ser positivo; depth y limit no pueden ser negativos")
+	if *trees < 1 || *depth < 0 || *limit < 0 || *workers < 0 {
+		return fmt.Errorf("trees debe ser positivo; depth, limit y workers no pueden ser negativos")
 	}
 	samples, err := ml.LoadCleanCSV(*input, *limit)
 	if err != nil {
@@ -41,10 +42,20 @@ func run() error {
 	fmt.Printf("Samples: %d\nTrain: %d\nTest: %d\n", len(samples), len(train), len(test))
 	fmt.Printf("Trees: %d\nMax depth: %d\nSeed: %d\nLimit: %d\n", *trees, *depth, *seed, *limit)
 	fmt.Println("Split: 80/20 estratificado (decision tecnica del proyecto)")
+	if *workers == 0 {
+		fmt.Println("Mode: secuencial")
+	} else {
+		fmt.Printf("Mode: concurrente (%d workers)\n", *workers)
+	}
 
 	// Solo mide una ejecucion del entrenamiento; no es el benchmark oficial.
 	start := time.Now()
-	forest, err := ml.TrainForest(train, *trees, *depth, *seed)
+	var forest *ml.RandomForest
+	if *workers == 0 {
+		forest, err = ml.TrainForest(train, *trees, *depth, *seed)
+	} else {
+		forest, err = ml.TrainForestConcurrent(train, *trees, *depth, *seed, *workers)
+	}
 	if err != nil {
 		return err
 	}
