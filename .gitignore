@@ -20,3 +20,9 @@ kaggle.json
 .DS_Store
 .idea/
 .vscode/
+formal/pan
+formal/pan.*
+formal/*.trail
+formal/pan
+formal/pan.*
+formal/*.trail
