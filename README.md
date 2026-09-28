@@ -137,6 +137,68 @@ go run ./cmd/benchmark --runs 10 --trim 0.1
 - Los resultados quedan en `results/benchmark.md` (tabla para el informe) y
   `results/benchmark.csv` (incluye el tiempo de cada corrida).
 
+## Resultados (dataset real)
+
+**Equipo:** laptop Intel Core i5-13420H (8 núcleos híbridos: 4 de rendimiento
++ 4 de eficiencia, 12 hilos), Windows 11, Go 1.27, conectada a la corriente,
+modo de energía "Máximo rendimiento", proceso con prioridad alta y sin
+suspensión del equipo durante la medición. **Método:** 10 corridas por
+configuración, media recortada al 10 % por extremo (se descartan la corrida
+más rápida y la más lenta). Tiempos de cada corrida en
+[`results/benchmark.csv`](results/benchmark.csv).
+
+### Limpieza (6 362 620 filas, 470 MB)
+
+| Versión | Workers | Media recortada (s) | Speedup | Eficiencia | Núcleos usados |
+|---|---:|---:|---:|---:|---:|
+| Secuencial | 1 | 14.49 | 1.00 | 1.00 | 1.97 |
+| Concurrente | 1 | 13.42 | 1.08 | 1.08 | 2.64 |
+| Concurrente | 2 | 14.02 | 1.03 | 0.52 | 2.76 |
+| Concurrente | 4 | 14.51 | 1.00 | 0.25 | 3.01 |
+| Concurrente | 8 | 14.84 | 0.98 | 0.12 | 3.07 |
+
+Resultado de la limpieza: 6 362 620 filas válidas, 0 descartadas
+([`data/processed/resumen_limpieza.json`](data/processed/resumen_limpieza.json)).
+
+### Random Forest (160 000 muestras de entrenamiento, 32 árboles, profundidad 8)
+
+| Versión | Workers | Media recortada (s) | Speedup | Eficiencia | Núcleos usados |
+|---|---:|---:|---:|---:|---:|
+| Secuencial | 1 | 12.99 | 1.00 | 1.00 | 1.16 |
+| Concurrente | 1 | 13.07 | 0.99 | 0.99 | 1.15 |
+| Concurrente | 2 | 8.68 | 1.50 | 0.75 | 2.44 |
+| Concurrente | 4 | 6.60 | 1.97 | 0.49 | 4.55 |
+| Concurrente | 8 | 6.07 | 2.14 | 0.27 | 7.66 |
+
+Calidad del modelo en test (40 001 muestras): accuracy 0.99998, precision
+1.0000, recall 0.9667, F1 0.9831 (29 de 30 fraudes detectados, 0 falsas
+alarmas). Detalle en
+[`results/metricas_random_forest.md`](results/metricas_random_forest.md).
+
+### Análisis
+
+- **Random Forest: escala.** Entrenar un árbol es trabajo pesado de CPU e
+  independiente de los demás, así que repartir árboles entre workers reduce
+  el tiempo hasta ×2.14 con 8 workers. Con 1 worker el tiempo es igual al
+  secuencial: el costo del pool (channel + WaitGroup) es despreciable. La
+  eficiencia cae con más workers porque el entrenamiento recorre y ordena
+  muchas muestras (más de 5 GB asignados en total), así que los workers
+  compiten por la memoria y la caché, y porque 4 de los 8 núcleos son de
+  eficiencia (~33 % más lentos).
+- **Limpieza: no escala.** Validar una fila cuesta muy poco comparado con
+  leerla del disco, pasarla por dos channels y escribirla. La lectura
+  (productor) y la escritura del CSV (reductor) son una sola goroutine cada
+  una, así que son la parte secuencial que, por la **ley de Amdahl**, limita
+  el Speedup a ~1 sin importar cuántos workers se agreguen (los núcleos
+  usados se quedan en ~3). La ganancia de ×1.08 con 1 worker viene de
+  solapar lectura, validación y escritura en goroutines distintas (pipeline).
+  Una mejora posible es enviar las filas en bloques para reducir el costo
+  por mensaje.
+- **Memoria:** el heap pico de la limpieza es de ~5 MB en todas las
+  versiones porque el CSV se procesa en streaming (nunca se carga entero).
+  En el Random Forest el heap pico crece con los workers (82 → 264 MB)
+  porque cada worker mantiene su propia muestra bootstrap en memoria.
+
 ## Pruebas
 
 El proyecto sigue TDD: cada archivo de `internal/preprocessing` tiene su
