@@ -5,8 +5,10 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"runtime"
 	"time"
 
+	"github.com/colrod1207/fraude-concurrente-paysim/internal/dataset"
 	"github.com/colrod1207/fraude-concurrente-paysim/internal/ml"
 )
 
@@ -18,7 +20,7 @@ func main() {
 }
 
 func run() error {
-	input := flag.String("input", "data/processed/paysim_clean.csv", "ruta del CSV limpio")
+	input := flag.String("input", dataset.DefaultClean, "ruta del CSV limpio (se genera si falta)")
 	trees := flag.Int("trees", 10, "numero de arboles")
 	depth := flag.Int("depth", 5, "profundidad maxima (raiz = 0)")
 	seed := flag.Int64("seed", 42, "semilla para split y entrenamiento, con generadores separados")
@@ -30,6 +32,9 @@ func run() error {
 	}
 	if *trees < 1 || *depth < 0 || *limit < 0 || *workers < 0 {
 		return fmt.Errorf("trees debe ser positivo; depth, limit y workers no pueden ser negativos")
+	}
+	if err := dataset.EnsureClean(dataset.DefaultRaw, *input, dataset.DefaultSummary, runtime.NumCPU(), os.Stdout); err != nil {
+		return err
 	}
 	samples, err := ml.LoadCleanCSV(*input, *limit)
 	if err != nil {
