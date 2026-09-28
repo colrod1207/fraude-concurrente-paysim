@@ -50,6 +50,9 @@ func run() error {
 		return fmt.Errorf("runs debe ser positivo y trim debe estar en [0, 0.5)")
 	}
 
+	// Evita que el equipo se suspenda a mitad de la medicion (distorsiona los tiempos).
+	defer benchmark.KeepAwake()()
+
 	fmt.Printf("Equipo: %s/%s, %d CPUs logicas, GOMAXPROCS=%d, %s\n",
 		runtime.GOOS, runtime.GOARCH, runtime.NumCPU(), runtime.GOMAXPROCS(0), runtime.Version())
 	fmt.Printf("Corridas: %d por configuracion, media recortada al %.0f%% por extremo\n\n", *runs, *trim*100)
