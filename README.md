@@ -79,6 +79,38 @@ escribe el CSV limpio y acumula el resumen
 | Esquema + lector concurrente (productor) | `internal/preprocessing/schema.go`, `internal/preprocessing/reader.go` (+ tests) |
 | Validación y transformación (worker) | `internal/preprocessing/worker.go` (+ test) |
 | Orquestación, resumen y CLI | `internal/preprocessing/pipeline.go`, `internal/preprocessing/summary.go`, `internal/preprocessing/testdata.go`, `cmd/testdatagen/main.go`, `main.go` (+ tests) |
+| Limpieza secuencial (baseline) | `internal/preprocessing/pipeline_sequential.go` |
+| Random Forest secuencial y concurrente | `internal/ml/`, `cmd/train/main.go` (+ tests) |
+| Benchmark (Speedup, media recortada, CPU/memoria) | `internal/benchmark/`, `cmd/benchmark/main.go` (+ tests) |
+| Modelo Promela | `formal/sync_model.pml`, `formal/evidencia_spin.txt` |
+
+## Benchmark: Speedup y media recortada (PC2)
+
+`cmd/benchmark` cronometra la versión secuencial y la concurrente de la
+limpieza (`RunSequential` vs `Run`) y del Random Forest (`TrainForest` vs
+`TrainForestConcurrent`) con 1, 2, 4 y 8 workers:
+
+```bash
+# 1) generar el CSV limpio (lo necesita el Random Forest)
+go run . --input data/raw/PS_20174392719_1491204439457_log.csv --workers 8
+# 2) cronometrar todo
+go run ./cmd/benchmark --runs 10 --trim 0.1
+```
+
+- Cada configuración se ejecuta `--runs` veces; se ordenan los tiempos, se
+  descarta el `--trim` (10%) más rápido y más lento, y se promedia el resto
+  (**media recortada**).
+- **Speedup** = T-Secuencial / T-Concurrente, y **eficiencia** =
+  Speedup / workers.
+- Aparte de las corridas cronometradas se hace una corrida extra para medir
+  **CPU** (tiempo de CPU del proceso / tiempo real = núcleos usados) y
+  **memoria** (heap pico y memoria total asignada), así esa medición no
+  altera los tiempos.
+- Del Random Forest solo se cronometra el entrenamiento (la carga del CSV y
+  el split se hacen una vez). `--limit`, `--trees` y `--depth` controlan el
+  tamaño del experimento.
+- Los resultados quedan en `results/benchmark.md` (tabla para el informe) y
+  `results/benchmark.csv` (incluye el tiempo de cada corrida).
 
 ## Pruebas
 
