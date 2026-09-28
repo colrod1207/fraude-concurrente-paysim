@@ -1,39 +1,60 @@
-# fraude-concurrente — Limpieza concurrente del dataset PaySim (PC1)
+# fraude-concurrente — Detección de fraude concurrente con PaySim (PC1 y PC2)
 
-Pipeline en Go (solo librería estándar, sin dependencias externas) que
-carga, limpia y valida el dataset PaySim usando goroutines, channels y
-`sync.WaitGroup`, siguiendo el patrón productor/consumidor/reductor
-descrito en el informe PC1 del curso CC65 (Programación Concurrente y
-Distribuida, UPC).
+Proyecto en Go (solo librería estándar, sin dependencias externas) del curso
+CC65 (Programación Concurrente y Distribuida, UPC): limpieza concurrente del
+dataset PaySim con el patrón productor/consumidor/reductor (goroutines,
+channels y `sync.WaitGroup`), un Random Forest secuencial y concurrente
+(worker pool), el modelo Promela de la sincronización y el cálculo de
+Speedup con media recortada.
 
-## Descargar el dataset
+## Ejecución en un comando
 
-Un solo comando, sin cuenta de Kaggle, sin token y sin instalar nada más
-que Go (el dataset es público):
+Solo se necesita [Go](https://go.dev/dl/) 1.21 o superior (si la versión
+instalada es más antigua que la del `go.mod`, Go descarga sola la correcta
+al ejecutar el comando). No hace falta cuenta de Kaggle, token, Python ni
+descargar nada a mano:
 
 ```bash
-go run ./cmd/download
+git clone https://github.com/colrod1207/fraude-concurrente-paysim.git
+cd fraude-concurrente-paysim
+go run ./cmd/benchmark
 ```
 
-Descarga el `.zip` desde la API de Kaggle, extrae
-`data/raw/PS_20174392719_1491204439457_log.csv` (~470 MB) y borra el
-`.zip`. Si el CSV ya existe no vuelve a descargarlo. Esa es la ruta que la
-limpieza usa por defecto, así que después basta con `go run .`. El CSV está
-en `.gitignore`: nunca se sube a GitHub.
+Ese comando hace todo el Entregable 2 de principio a fin:
 
-> Si el repo está dentro de OneDrive/Dropbox, conviene descargarlo fuera
-> para que no se sincronice: `go run ./cmd/download --dir C:/datasets/paysim`
-> y pasar esa ruta con `--input`.
+1. Si no está el dataset, lo **descarga de Kaggle** automáticamente (dataset
+   público, ~470 MB) en `data/raw/`.
+2. Si no está el CSV limpio, **ejecuta la limpieza concurrente** y lo deja en
+   `data/processed/`.
+3. **Cronometra** la limpieza y el Random Forest en versión secuencial y
+   concurrente (1, 2, 4 y 8 workers), 10 corridas cada una, y calcula la
+   **media recortada**, el **Speedup** y el uso de CPU y memoria.
+4. **Evalúa el Random Forest** (matriz de confusión, accuracy, precision,
+   recall y F1).
+5. Guarda todo en `results/` (`benchmark.md`, `benchmark.csv`,
+   `metricas_random_forest.md`).
+
+La corrida completa tarda unos 20 minutos. Para una prueba rápida (~5 min):
+`go run ./cmd/benchmark --runs 2 --trim 0 --limit 50000 --trees 8`.
+
+La descarga y la limpieza se hacen una sola vez; las siguientes ejecuciones
+reutilizan los archivos. Los CSV están en `.gitignore`: nunca se suben a
+GitHub. Cualquier otro comando (`go run .`, `go run ./cmd/train`) también
+descarga el dataset si falta; `go run ./cmd/download` solo lo descarga.
+
+> Si el repo está dentro de OneDrive/Dropbox, conviene descargar el dataset
+> fuera para que no se sincronice: `go run ./cmd/download --dir C:/datasets/paysim`
+> y pasar esa ruta con `--input` / `--raw`.
 
 ## Ejecutar la limpieza
 
 ```bash
-go run . \
-  --input data/raw/PS_20174392719_1491204439457_log.csv \
-  --output data/processed/paysim_clean.csv \
-  --summary data/processed/resumen_limpieza.json \
-  --workers 8
+go run . --workers 8
 ```
+
+Por defecto lee `data/raw/PS_20174392719_1491204439457_log.csv` (y lo
+descarga si falta). Las rutas se cambian con `--input`, `--output` y
+`--summary`.
 
 Esto genera:
 
@@ -98,9 +119,6 @@ limpieza (`RunSequential` vs `Run`) y del Random Forest (`TrainForest` vs
 `TrainForestConcurrent`) con 1, 2, 4 y 8 workers:
 
 ```bash
-# 1) generar el CSV limpio (lo necesita el Random Forest)
-go run . --input data/raw/PS_20174392719_1491204439457_log.csv --workers 8
-# 2) cronometrar todo
 go run ./cmd/benchmark --runs 10 --trim 0.1
 ```
 
