@@ -8,16 +8,22 @@ Distribuida, UPC).
 
 ## Descargar el dataset
 
-Vía API de Kaggle (recomendado — cada integrante necesita su propia cuenta
-y token, no se comparte `kaggle.json` entre personas):
+Un solo comando, sin cuenta de Kaggle, sin token y sin instalar nada más
+que Go (el dataset es público):
 
 ```bash
-pip install kaggle
-kaggle datasets download -d ealaxi/paysim1 -p data/raw --unzip
+go run ./cmd/download
 ```
 
-Requiere tener el token de tu cuenta en `~/.kaggle/kaggle.json` (se genera
-en https://www.kaggle.com/settings → API → "Create New Token").
+Descarga el `.zip` desde la API de Kaggle, extrae
+`data/raw/PS_20174392719_1491204439457_log.csv` (~470 MB) y borra el
+`.zip`. Si el CSV ya existe no vuelve a descargarlo. Esa es la ruta que la
+limpieza usa por defecto, así que después basta con `go run .`. El CSV está
+en `.gitignore`: nunca se sube a GitHub.
+
+> Si el repo está dentro de OneDrive/Dropbox, conviene descargarlo fuera
+> para que no se sincronice: `go run ./cmd/download --dir C:/datasets/paysim`
+> y pasar esa ruta con `--input`.
 
 ## Ejecutar la limpieza
 
@@ -76,6 +82,7 @@ escribe el CSV limpio y acumula el resumen
 
 | Módulo | Archivos |
 |---|---|
+| Descarga del dataset | `internal/dataset/download.go`, `cmd/download/main.go` (+ test) |
 | Esquema + lector concurrente (productor) | `internal/preprocessing/schema.go`, `internal/preprocessing/reader.go` (+ tests) |
 | Validación y transformación (worker) | `internal/preprocessing/worker.go` (+ test) |
 | Orquestación, resumen y CLI | `internal/preprocessing/pipeline.go`, `internal/preprocessing/summary.go`, `internal/preprocessing/testdata.go`, `cmd/testdatagen/main.go`, `main.go` (+ tests) |
