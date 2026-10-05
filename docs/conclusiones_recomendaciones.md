@@ -37,7 +37,7 @@ Texto listo para pegar en el informe. Todas las cifras salen de
 7. **La revisión con IA aportó hallazgos útiles y verificables.** Claude
    analizó el repositorio con un prompt estructurado (calidad, seguridad,
    concurrencia, otros) y reportó 12 puntos, ninguno con severidad alta. El
-   equipo cerró GAP-P1, O1, O2 y O3. Dos de las cuatro categorías confirmaron
+   equipo cerró GAP-P1, O1, O2 y O3. Las cuatro categorías incluyeron además puntos a favor que confirmaron
    buenas prácticas ya presentes, como la extracción del `.zip` sin *zip slip*.
 
 ## Recomendaciones
