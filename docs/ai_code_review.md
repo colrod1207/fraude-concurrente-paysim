@@ -1,7 +1,7 @@
 # Informe de análisis de código con IA
 
 **Repositorio analizado:** https://github.com/colrod1207/fraude-concurrente-paysim
-**Commit analizado:** `aae0c83` (rama `main`)
+**Commit analizado:** `aae0c83` (rama `main`). Los GAPs marcados como **RESUELTO** se atendieron después, en la rama `feature/ai-review-integration` (ver sección 8).
 **Modelo utilizado:** Claude (Anthropic), vía Claude.ai
 **Fecha:** TP — CC65, Trabajo Parcial 2026-20
 
@@ -78,7 +78,7 @@ Sobre esta base se hizo una revisión manual del código, el modelo Promela y la
 |---|---|---|---|
 | — | `internal/preprocessing/pipeline.go` (`Run`) | — (correcto) | Patrón productor/worker pool/reductor bien aplicado: el único proceso que escribe el CSV de salida y acumula el `Summary` es la goroutine que llama a `Run`; los workers son funciones puras sin estado compartido (confirmado también por el modelo Promela de PC2, verificado con SPIN, y por `go test -race` sin errores). |
 | — | `internal/ml/forest_concurrent.go` | — (correcto) | Patrón distinto y bien justificado: en vez de un channel de resultados + reductor, cada worker escribe directamente en `forest.trees[i]`. Como los índices de un channel `jobs` sin duplicados garantizan que cada posición del slice la escribe un único worker, no hace falta ningún lock — y el comentario del código lo explica correctamente. Es una variación válida del patrón worker pool (fan-out sin fan-in explícito, porque no hay que combinar resultados, solo ensamblarlos por índice). |
-| GAP-P1 | `internal/ml/forest_concurrent.go` (`TrainForestConcurrent`) | Baja | No hay verificación formal (Promela) específica para este patrón — el `.pml` existente de PC2 solo modela la limpieza (productor/worker/reductor con channel de resultados), que es una topología distinta a la de "workers escribiendo por índice en un array compartido". La corrección de este segundo patrón hoy descansa solo en `-race` y en el razonamiento del comentario, no en una verificación exhaustiva de estados. | Si da tiempo, agregar un segundo modelo `.pml` para este patrón específico (workers con índice único sobre un arreglo), análogo al que ya existe para la limpieza. No es estrictamente necesario porque el patrón es más simple de razonar que el productor/consumidor, pero sería más consistente con el rigor que ya mostraron en la limpieza. |
+| GAP-P1 — **RESUELTO** | `internal/ml/forest_concurrent.go` (`TrainForestConcurrent`) | Baja | No hay verificación formal (Promela) específica para este patrón — el `.pml` existente de PC2 solo modela la limpieza (productor/worker/reductor con channel de resultados), que es una topología distinta a la de "workers escribiendo por índice en un array compartido". La corrección de este segundo patrón hoy descansa solo en `-race` y en el razonamiento del comentario, no en una verificación exhaustiva de estados. | Si da tiempo, agregar un segundo modelo `.pml` para este patrón específico (workers con índice único sobre un arreglo), análogo al que ya existe para la limpieza. No es estrictamente necesario porque el patrón es más simple de razonar que el productor/consumidor, pero sería más consistente con el rigor que ya mostraron en la limpieza. |
 | GAP-P2 | `internal/benchmark/runner.go` (`ProfileRun`) | Baja | El goroutine muestreador de memoria (`stats.go`) usa `stop`/`wg.Wait()` para terminar limpiamente, que es correcto, pero no hay un límite de tiempo (timeout) si `fn()` se queda colgado — el `ProfileRun` esperaría indefinidamente. Dado que `fn` son llamadas a código propio y controlado (no I/O externo salvo la descarga, que si corresponde ya ocurrió antes), el riesgo real es bajo. | Opcional: envolver `fn()` con un `context.WithTimeout` si en el futuro se agregan pasos que dependan de red o de disco lento. |
 | — | General | — (correcto) | No se encontraron locks (`sync.Mutex`) en ningún paquete del proyecto. Dado que ambos patrones de concurrencia usados (reductor único y escritura por índice exclusivo) garantizan exclusión mutua *por construcción* y no por sincronización explícita, la ausencia de locks es resultado de un diseño cuidadoso, no un descuido. |
 
@@ -86,9 +86,9 @@ Sobre esta base se hizo una revisión manual del código, el modelo Promela y la
 
 | ID | Ubicación | Severidad | Descripción | Recomendación |
 |---|---|---|---|---|
-| GAP-O1 | `go.mod:3` | Media | `go 1.27.0` es una versión muy reciente del lenguaje. Un evaluador o un compañero con un Go más antiguo instalado no podrá compilar el proyecto sin antes actualizar su toolchain (en este análisis, Go 1.22.2 no pudo compilarlo directamente). | A menos que el proyecto use específicamente una característica introducida en 1.27, bajar el requisito a una versión más ampliamente disponible (ej. 1.22 o 1.23), o documentar en el README la versión exacta de Go requerida y cómo instalarla. |
-| GAP-O2 | raíz del repositorio | Baja | No hay carpeta `.github/workflows`: no hay integración continua que corra automáticamente `go build`, `go vet`, `gofmt -l` y `go test -race` en cada Pull Request. Hoy esas verificaciones dependen de que cada integrante las corra manualmente antes de hacer push. | Agregar un workflow simple de GitHub Actions (`go build ./...`, `go vet ./...`, `go test ./... -race`) que corra en cada PR — además de mejorar la calidad, deja evidencia automática y con sello de tiempo de que el código compilaba y pasaba los tests en cada entrega, útil frente a la regla de "no editar después de la fecha límite". |
-| GAP-O3 | raíz del repositorio | Baja | No hay archivo `LICENSE`. El enunciado pide que el repositorio sea público, pero no especifica licencia; igual es una buena práctica para cualquier repo académico público. | Agregar una licencia simple (MIT, por ejemplo) si el equipo no tiene preferencia. |
+| GAP-O1 — **RESUELTO** | `go.mod:3` | Media | `go 1.27.0` es una versión muy reciente del lenguaje. Un evaluador o un compañero con un Go más antiguo instalado no podrá compilar el proyecto sin antes actualizar su toolchain (en este análisis, Go 1.22.2 no pudo compilarlo directamente). | A menos que el proyecto use específicamente una característica introducida en 1.27, bajar el requisito a una versión más ampliamente disponible (ej. 1.22 o 1.23), o documentar en el README la versión exacta de Go requerida y cómo instalarla. |
+| GAP-O2 — **RESUELTO** | raíz del repositorio | Baja | No hay carpeta `.github/workflows`: no hay integración continua que corra automáticamente `go build`, `go vet`, `gofmt -l` y `go test -race` en cada Pull Request. Hoy esas verificaciones dependen de que cada integrante las corra manualmente antes de hacer push. | Agregar un workflow simple de GitHub Actions (`go build ./...`, `go vet ./...`, `go test ./... -race`) que corra en cada PR — además de mejorar la calidad, deja evidencia automática y con sello de tiempo de que el código compilaba y pasaba los tests en cada entrega, útil frente a la regla de "no editar después de la fecha límite". |
+| GAP-O3 — **RESUELTO** | raíz del repositorio | Baja | No hay archivo `LICENSE`. El enunciado pide que el repositorio sea público, pero no especifica licencia; igual es una buena práctica para cualquier repo académico público. | Agregar una licencia simple (MIT, por ejemplo) si el equipo no tiene preferencia. |
 | — | `README.md` | — (correcto) | El README explica con claridad cómo correr el proyecto con un solo comando, la arquitectura del pipeline con diagrama ASCII, y por qué no hace falta ningún lock — buena práctica de documentación que facilita justamente este tipo de revisión. |
 
 ## 7. Resumen
@@ -101,3 +101,18 @@ Sobre esta base se hizo una revisión manual del código, el modelo Promela y la
 | Otros | 3 | Media |
 
 **No se encontraron condiciones de carrera, deadlocks ni violaciones de exclusión mutua** en el código Go (confirmado con `go test -race`) ni en el modelo formal verificado con SPIN. Los hallazgos de este informe son de severidad media/baja y apuntan sobre todo a robustez de bordes (manejo de errores de parseo), reproducibilidad (versión de Go) y proceso (ausencia de CI), no a errores funcionales del sistema.
+
+## 8. Seguimiento: GAPs atendidos por el equipo
+
+Después de recibir este informe, el equipo atendió los hallazgos que se podían cerrar con poco riesgo. El resto queda documentado como trabajo futuro.
+
+| GAP | Acción tomada | Evidencia |
+|---|---|---|
+| GAP-P1 | Se modeló el patrón de `TrainForestConcurrent` (workers con índice exclusivo, sin lock) en Promela y se verificó con SPIN: 0 errores, 106 330 estados almacenados, sin estados inalcanzables en `Loader` ni `Worker`. | `formal/forest_sync_model.pml`, `formal/evidencia_forest_spin.txt` |
+| GAP-O1 | Se bajó `go.mod` de `go 1.27.0` a `go 1.22`. Se comprobó que `go build`, `go vet` y `go test ./...` siguen pasando. | `go.mod` |
+| GAP-O2 | Se agregó un workflow de GitHub Actions que corre `gofmt`, `go build`, `go vet` y `go test -race -cover` en cada PR y en cada push a `main`/`develop`. | `.github/workflows/ci.yml` |
+| GAP-O3 | Se agregó licencia MIT. | `LICENSE` |
+
+**Pendientes (trabajo futuro):** GAP-C1 (motivo propio `parse_error_csv` en vez de `empty_row`), GAP-C2, GAP-C3, GAP-C4 (tests de la lógica de `main`), GAP-S1 (SHA-256 del `.zip` descargado), GAP-S3 y GAP-P2. Ninguno afecta la corrección funcional del sistema.
+
+**Nota:** el análisis original se hizo sobre `aae0c83`, que todavía no incluía el modelo Promela del forest. Por eso GAP-P1 figura como hallazgo en la sección 5 y como resuelto en esta sección.

@@ -110,7 +110,10 @@ escribe el CSV limpio y acumula el resumen
 | Limpieza secuencial (baseline) | `internal/preprocessing/pipeline_sequential.go` |
 | Random Forest secuencial y concurrente | `internal/ml/`, `cmd/train/main.go` (+ tests) |
 | Benchmark (Speedup, media recortada, CPU/memoria) | `internal/benchmark/`, `cmd/benchmark/main.go` (+ tests) |
-| Modelo Promela | `formal/sync_model.pml`, `formal/evidencia_spin.txt` |
+| Modelo Promela (limpieza) | `formal/sync_model.pml`, `formal/evidencia_spin.txt` |
+| Modelo Promela (Random Forest) | `formal/forest_sync_model.pml`, `formal/evidencia_forest_spin.txt` |
+| Análisis de código con IA (prompt y GAPs) | `docs/ai_code_review.md` |
+| Integración continua | `.github/workflows/ci.yml` |
 
 ## Benchmark: Speedup y media recortada (PC2)
 
