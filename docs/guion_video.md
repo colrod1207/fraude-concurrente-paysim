@@ -13,7 +13,7 @@ La primera diapositiva es la portada; el tiempo se cuenta desde la 2.
 | 3:30–4:15 | B | 5. Resultados: limpieza | Speedup ~1.0. Ley de Amdahl: leer y escribir son secuenciales. Heap de ~5 MB por streaming. | Tabla de limpieza. |
 | 4:15–4:45 | B | 6. Calidad del modelo | Precision 1.0, recall 0.9667, F1 0.9831: 29 de 30 fraudes, 0 falsas alarmas. Mencionar que son pocos fraudes en test. | Matriz de confusión. |
 | 4:45–5:15 | C | 7. Verificación formal | Dos modelos Promela verificados con SPIN, 0 errores. `go test -race` limpio y CI en GitHub Actions. | `formal/evidencia_forest_spin.txt`, badge o corrida de CI. |
-| 5:15–5:45 | C | 8. Análisis con IA | Prompt estructurado a Claude, 12 hallazgos, ninguno de severidad alta. Cerramos 4 GAPs (Promela del forest, go.mod, CI, licencia). | `docs/ai_code_review.md`, sección 8. |
+| 5:15–5:45 | C | 8. Análisis con IA | Prompt estructurado a Claude, 11 hallazgos, ninguno de severidad alta. Cerramos 4 GAPs (Promela del forest, go.mod, CI, licencia). | `docs/ai_code_review.md`, sección 8. |
 | 5:45–6:00 | C | 9. Conclusiones | Una frase por idea: concurrencia ayuda donde el trabajo es pesado e independiente; Amdahl limita el resto. Recomendación: batching. | Lista corta. |
 
 ## Consejos
